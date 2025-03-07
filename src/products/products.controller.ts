@@ -22,8 +22,8 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(@Query('searchParam') searchParam: string) {
-    return this.productsService.findAll(searchParam);
+  findAll(@Query('query') query: string, @Query('size') size: string) {
+    return this.productsService.findAll({ query, size });
   }
 
   @Get(':id')

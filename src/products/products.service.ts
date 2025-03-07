@@ -34,22 +34,40 @@ export class ProductsService {
     }
   }
 
-  async findAll(searchParam: string): Promise<Product[]> {
+  async findAll(filters: { query: string; size: string }): Promise<Product[]> {
+    const query: any = {};
+
+    if (filters.query) {
+      const searchRegex = new RegExp(filters.query, 'i');
+      query.$or = [{ name: searchRegex }, { description: searchRegex }];
+    }
+
+    if (filters.size) {
+      query.size = filters.size;
+    }
+
     try {
-      return await this.productModel.find({
-        $or: [
-          { name: { $regex: searchParam } },
-          { description: { $regex: searchParam } },
-        ],
-      });
+      return await this.productModel.find(query).exec();
     } catch (error) {
       throw new InternalServerErrorException('Something terrible happen!!!');
     }
+    // const searchRegex = new RegExp(filters.query, 'i');
+
+    // try {
+    //   return await this.productModel
+    //     .find({
+    //       $or: [{ name: searchRegex }, { description: searchRegex }],
+    //       size: filters.size,
+    //     })
+    //     .exec();
+    // } catch (error) {
+    //   throw new InternalServerErrorException('Something terrible happen!!!');
+    // }
   }
 
   async findOne(id: string): Promise<Product> {
     try {
-      const product = await this.productModel.findById(id);
+      const product = await this.productModel.findById(id).exec();
 
       if (product) {
         return product;
@@ -69,11 +87,11 @@ export class ProductsService {
     updateProductDto: UpdateProductDto,
   ): Promise<Product | null> {
     try {
-      const productToUpdate = await this.productModel.findById(id);
+      const productToUpdate = await this.findOne(id);
 
       if (productToUpdate) {
         await this.productModel.replaceOne({ _id: id }, updateProductDto);
-        return await this.productModel.findById(id);
+        return await this.findOne(id);
       } else {
         throw new BadRequestException(`El producto con ID ${id} no existe!`);
       }
@@ -87,7 +105,7 @@ export class ProductsService {
 
   async remove(id: string) {
     try {
-      const productToDelete = await this.productModel.findById(id);
+      const productToDelete = await this.findOne(id);
 
       if (productToDelete) {
         return await this.productModel.deleteOne({ _id: id });
@@ -103,3 +121,17 @@ export class ProductsService {
     }
   }
 }
+
+// async findAll(searchParam: string): Promise<Product[]> {
+
+//   try {
+//     return await this.productModel.find({
+//       $or: [
+//         { name: { $regex: searchParam } },
+//         { description: { $regex: searchParam } },
+//       ],
+//     });
+//   } catch (error) {
+//     throw new InternalServerErrorException('Something terrible happen!!!');
+//   }
+// }

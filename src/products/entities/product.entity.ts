@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ProductStatus } from '../interfaces/product-status.enum';
+import { Document } from 'mongoose';
 
 @Schema()
-export class Product {
-  _id?: string;
+export class Product extends Document {
+  //_id?: string;
 
   @Prop({ unique: true, required: true, minlength: 5, maxlength: 100 })
   name: string;
@@ -14,8 +14,8 @@ export class Product {
   @Prop({ required: true, default: 0 })
   price: number;
 
-  @Prop({ default: ProductStatus.available })
-  status: string;
+  @Prop({ required: true })
+  size: string;
 
   @Prop({ default: true })
   isActive: boolean;
