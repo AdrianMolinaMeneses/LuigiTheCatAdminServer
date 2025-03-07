@@ -1,4 +1,11 @@
-import { IsNumber, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { SizeEnum } from '../interfaces/size-enum.interface';
 
 export class CreateProductDto {
   @IsString()
@@ -12,4 +19,7 @@ export class CreateProductDto {
 
   @IsNumber({}, { message: 'El precio solo acepta valores numéricos.' })
   price: number;
+
+  @IsEnum(SizeEnum, { message: 'No es un valor de talla válido.' })
+  size: string;
 }
