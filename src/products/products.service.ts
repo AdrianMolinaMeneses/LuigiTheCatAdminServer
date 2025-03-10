@@ -99,6 +99,11 @@ export class ProductsService {
       if (error.status === 400) {
         throw new BadRequestException(error.response.message);
       }
+      if (error.code === 11000) {
+        throw new BadRequestException(
+          `El producto ${updateProductDto.name} ya existe!`,
+        );
+      }
       throw new BadRequestException('ID no valido');
     }
   }
