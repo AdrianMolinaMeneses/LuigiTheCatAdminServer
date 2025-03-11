@@ -22,8 +22,12 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(@Query('query') query: string, @Query('size') size: string) {
-    return this.productsService.findAll({ query, size });
+  findAll(
+    @Query('query') query: string,
+    @Query('size') size: string,
+    @Query('color') color: string,
+  ) {
+    return this.productsService.findAll({ query, size, color });
   }
 
   @Get(':id')

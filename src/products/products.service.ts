@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -8,11 +10,14 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Product } from './entities/product.entity';
 import { Model } from 'mongoose';
+import { StocksService } from 'src/stocks/stocks.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
+    @Inject(forwardRef(() => StocksService))
+    private readonly stocksService: StocksService,
   ) {}
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
@@ -23,18 +28,26 @@ export class ProductsService {
 
       const product = newProduct.toJSON();
 
+      await this.stocksService.create({
+        product: product._id.toString(),
+      });
+
       return product;
     } catch (error) {
-      if (error.code === 11000) {
-        throw new BadRequestException(
-          `El producto ${createProductDto.name} ya existe!`,
-        );
-      }
+      // if (error.code === 11000) {
+      //   throw new BadRequestException(
+      //     `El producto ${createProductDto.name} ya existe!`,
+      //   );
+      // }
       throw new InternalServerErrorException('Something terrible happen!!!');
     }
   }
 
-  async findAll(filters: { query: string; size: string }): Promise<Product[]> {
+  async findAll(filters: {
+    query: string;
+    size: string;
+    color: string;
+  }): Promise<Product[]> {
     const query: any = {};
 
     if (filters.query) {
@@ -44,6 +57,10 @@ export class ProductsService {
 
     if (filters.size) {
       query.size = filters.size;
+    }
+
+    if (filters.color) {
+      query.color = filters.color;
     }
 
     try {
@@ -113,6 +130,14 @@ export class ProductsService {
       const productToDelete = await this.findOne(id);
 
       if (productToDelete) {
+        const stockToDelete = await this.stocksService.findOneByProductId(
+          productToDelete._id!.toString(),
+        );
+
+        if (stockToDelete) {
+          await this.stocksService.remove(stockToDelete._id!.toString());
+        }
+
         return await this.productModel.deleteOne({ _id: id });
       } else {
         throw new BadRequestException(`El producto con ID ${id} no existe!`);
