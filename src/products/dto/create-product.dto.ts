@@ -6,6 +6,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { SizeEnum } from '../interfaces/size-enum.interface';
+import { ColorEnum } from '../interfaces/color-enum.interface';
 
 export class CreateProductDto {
   @IsString()
@@ -19,6 +20,9 @@ export class CreateProductDto {
 
   @IsNumber({}, { message: 'El precio solo acepta valores numéricos.' })
   price: number;
+
+  @IsEnum(ColorEnum, { message: 'No es un valor de color válido.' })
+  color: string;
 
   @IsEnum(SizeEnum, { message: 'No es un valor de talla válido.' })
   size: string;
