@@ -4,9 +4,14 @@ import { StocksController } from './stocks.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Stock, StockSchema } from './entities/stock.entity';
 import { ProductsModule } from 'src/products/products.module';
+import { StockMovementsController } from './stock-movements.controller';
+import {
+  StockMovement,
+  StockMovementSchema,
+} from './entities/stock-movement.entity';
 
 @Module({
-  controllers: [StocksController],
+  controllers: [StocksController, StockMovementsController],
   providers: [StocksService],
   imports: [
     forwardRef(() => ProductsModule),
@@ -14,6 +19,10 @@ import { ProductsModule } from 'src/products/products.module';
       {
         name: Stock.name,
         schema: StockSchema,
+      },
+      {
+        name: StockMovement.name,
+        schema: StockMovementSchema,
       },
     ]),
   ],

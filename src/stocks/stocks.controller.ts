@@ -35,10 +35,10 @@ export class StocksController {
     return this.stocksService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {
-    return this.stocksService.update(+id, updateStockDto);
-  }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {
+  //   return this.stocksService.update(id, updateStockDto);
+  // }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
