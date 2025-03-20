@@ -1,10 +1,12 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { StocksService } from './stocks.service';
+import { AuthGuard } from 'src/auth/guards/auth/auth.guard';
 
 @Controller('stocks')
 export class StocksController {
   constructor(private readonly stocksService: StocksService) {}
 
+  @UseGuards(AuthGuard)
   @Get()
   findAll(
     @Query('query') query: string,
