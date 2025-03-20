@@ -6,7 +6,6 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateStockDto } from './dto/create-stock.dto';
-import { UpdateStockDto } from './dto/update-stock.dto';
 import { Stock } from './entities/stock.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -14,6 +13,7 @@ import { ProductsService } from 'src/products/products.service';
 import { StockMovement } from './entities/stock-movement.entity';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { TypeStockMovementEnum } from './interfaces/type-stock-movement-enum.interface';
+import { CancelStockMovementDto } from './dto/cancel-stock-movement.dto';
 
 @Injectable()
 export class StocksService {
@@ -25,7 +25,7 @@ export class StocksService {
     private readonly productsService: ProductsService,
   ) {}
 
-  async create(createStockDto: CreateStockDto): Promise<Stock> {
+  async createStock(createStockDto: CreateStockDto): Promise<Stock> {
     try {
       const newStock = new this.stockModel(createStockDto);
 
@@ -40,7 +40,7 @@ export class StocksService {
     }
   }
 
-  async findAll(filters: {
+  async findAllStocks(filters: {
     query: string;
     size: string;
     color: string;
@@ -58,7 +58,7 @@ export class StocksService {
     }
   }
 
-  async findOne(id: string): Promise<Stock> {
+  async findOneStock(id: string): Promise<Stock> {
     try {
       const stock = await this.stockModel.findById(id).exec();
 
@@ -75,7 +75,7 @@ export class StocksService {
     }
   }
 
-  async findOneByProductId(productId: string): Promise<Stock> {
+  async findOneStockByProductId(productId: string): Promise<Stock> {
     try {
       const stock = await this.stockModel
         .findOne({ product: productId })
@@ -94,13 +94,13 @@ export class StocksService {
     }
   }
 
-  async update(id: string, updateStockDto: Stock) {
+  async updateStock(id: string, updateStockDto: Stock) {
     try {
-      const stockToUpdate = await this.findOne(id);
+      const stockToUpdate = await this.findOneStock(id);
 
       if (stockToUpdate) {
         await this.stockModel.replaceOne({ _id: id }, updateStockDto);
-        return await this.findOne(id);
+        return await this.findOneStock(id);
       } else {
         throw new BadRequestException(`El stock con ID ${id} no existe!`);
       }
@@ -112,9 +112,9 @@ export class StocksService {
     }
   }
 
-  async remove(id: string) {
+  async removeStock(id: string) {
     try {
-      const stockToDelete = await this.findOne(id);
+      const stockToDelete = await this.findOneStock(id);
 
       if (stockToDelete) {
         return await this.stockModel.deleteOne({ _id: id });
@@ -134,16 +134,17 @@ export class StocksService {
     createStockMovementDto: CreateStockMovementDto,
   ): Promise<StockMovement> {
     try {
-      const stock = await this.findOne(createStockMovementDto.stock);
-      console.log({ SM: createStockMovementDto, S: stock });
+      const stock = await this.findOneStock(createStockMovementDto.stock);
+
       if (stock) {
-        stock.quantity = this.verifyStockQuantity(
-          createStockMovementDto,
+        stock.quantity = this.updateStockQuantity(
+          createStockMovementDto.type,
+          createStockMovementDto.quantity,
+          true,
           stock,
         );
 
-        console.log({ SAU: stock });
-        await this.update(stock._id!.toString(), stock);
+        await this.updateStock(stock._id!.toString(), stock);
 
         const newStockMovement = new this.stockMovementModel({
           ...createStockMovementDto,
@@ -161,18 +162,84 @@ export class StocksService {
         );
       }
     } catch (error) {
-      console.log(error);
+      if (error.status === 400) {
+        throw new BadRequestException(error.response.message);
+      }
       throw new InternalServerErrorException('Something terrible happen!!!');
+    }
+  }
+
+  async cancelStockMovement(
+    id: string,
+    cancelStockMovementDto: CancelStockMovementDto,
+  ): Promise<StockMovement> {
+    try {
+      const stockMovement = await this.findOneStockMovement(id);
+      const stock = await this.findOneStock(
+        stockMovement.stock._id!.toString(),
+      );
+
+      if (stock) {
+        stock.quantity = this.updateStockQuantity(
+          stockMovement.type,
+          stockMovement.quantity,
+          false,
+          stock,
+        );
+
+        await this.updateStock(stock._id!.toString(), stock);
+
+        stockMovement.status = false;
+        stockMovement.description = 'Movimiento anulado';
+        await this.stockMovementModel.replaceOne({ _id: id }, stockMovement);
+
+        return stockMovement;
+      } else {
+        throw new BadRequestException(
+          `El stock con ID ${stockMovement.stock} no existe!`,
+        );
+      }
+    } catch (error) {
+      if (error.status === 400) {
+        throw new BadRequestException(error.response.message);
+      }
+      throw new InternalServerErrorException('Something terrible happen!!!');
+    }
+  }
+
+  async findOneStockMovement(id: string): Promise<StockMovement> {
+    try {
+      const stockMovement = await this.stockMovementModel
+        .findById(id)
+        .populate('stock')
+        .exec();
+
+      if (stockMovement) {
+        return stockMovement;
+      } else {
+        throw new BadRequestException(
+          `El movimiento de stock con ID ${id} no existe!`,
+        );
+      }
+    } catch (error) {
+      if (error.status === 400) {
+        throw new BadRequestException(error.response.message);
+      }
+      throw new BadRequestException('ID no valido');
     }
   }
 
   async findAllStockMovements(
     startDate: string,
     endDate: string,
+    typeStockMovement: string,
   ): Promise<StockMovement[]> {
     try {
       const query: any = {};
-      console.log({ start: new Date(startDate), end: new Date(endDate) });
+
+      if (typeStockMovement) {
+        query.type = typeStockMovement;
+      }
 
       query.registerDate = {
         $gte: new Date(startDate),
@@ -189,23 +256,32 @@ export class StocksService {
     }
   }
 
-  private verifyStockQuantity(
-    createStockMovementDto: CreateStockMovementDto,
+  private updateStockQuantity(
+    type: string,
+    quantity: number,
+    toCreateStockMovement: boolean,
     stock: Stock,
   ): number {
-    switch (createStockMovementDto.type) {
-      case TypeStockMovementEnum.ENTRY:
-        return stock.quantity + createStockMovementDto.quantity;
-
-      case TypeStockMovementEnum.DISCHARGE:
-        if (stock.quantity < createStockMovementDto.quantity) {
+    switch (type) {
+      case TypeStockMovementEnum.MERCHANDISE_ENTRY:
+        if (!toCreateStockMovement && stock.quantity < quantity) {
           throw new BadRequestException(
             'Error: La cantidad en el stock es menor a la que se quiere retirar',
           );
         }
-        return stock.quantity - createStockMovementDto.quantity;
+        return toCreateStockMovement
+          ? stock.quantity + quantity
+          : stock.quantity - quantity;
 
-      //opcion 3 sera cuando se quiera anular un ingreso o egreso
+      case TypeStockMovementEnum.SALE:
+        if (toCreateStockMovement && stock.quantity < quantity) {
+          throw new BadRequestException(
+            'Error: La cantidad en el stock es menor a la que se quiere retirar',
+          );
+        }
+        return toCreateStockMovement
+          ? stock.quantity - quantity
+          : stock.quantity + quantity;
 
       default:
         throw new BadRequestException('Error: Opción invalida');

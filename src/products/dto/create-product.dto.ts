@@ -19,7 +19,10 @@ export class CreateProductDto {
   description: string;
 
   @IsNumber({}, { message: 'El precio solo acepta valores numéricos.' })
-  price: number;
+  purchasePrice: number;
+
+  @IsNumber({}, { message: 'El precio solo acepta valores numéricos.' })
+  salePrice: number;
 
   @IsEnum(ColorEnum, { message: 'No es un valor de color válido.' })
   color: string;
