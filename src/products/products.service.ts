@@ -64,7 +64,7 @@ export class ProductsService {
     }
 
     try {
-      return await this.productModel.find(query).exec();
+      return await this.productModel.find(query).sort({ name: 1 }).exec();
     } catch (error) {
       throw new InternalServerErrorException('Something terrible happen!!!');
     }
