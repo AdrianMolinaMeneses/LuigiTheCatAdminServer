@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { StocksService } from './stocks.service';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
+import { CancelStockMovementDto } from './dto/cancel-stock-movement.dto';
 
 @Controller('stock-movements')
 export class StockMovementsController {
@@ -8,7 +17,6 @@ export class StockMovementsController {
 
   @Post()
   create(@Body() createStockMovemntDto: CreateStockMovementDto) {
-    console.log(createStockMovemntDto);
     return this.stocksService.createStockMovement(createStockMovemntDto);
   }
 
@@ -16,8 +24,20 @@ export class StockMovementsController {
   findAll(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
+    @Query('typeStockMovement') typeStockMovement: string,
   ) {
-    console.log({ startDate, endDate });
-    return this.stocksService.findAllStockMovements(startDate, endDate);
+    return this.stocksService.findAllStockMovements(
+      startDate,
+      endDate,
+      typeStockMovement,
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() cancelStockMovementDto: CancelStockMovementDto,
+  ) {
+    return this.stocksService.cancelStockMovement(id, cancelStockMovementDto);
   }
 }

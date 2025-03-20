@@ -12,7 +12,10 @@ export class Product extends Document {
   description: string;
 
   @Prop({ required: true, default: 0 })
-  price: number;
+  purchasePrice: number;
+
+  @Prop({ required: true, default: 0 })
+  salePrice: number;
 
   @Prop({ required: true })
   color: string;

@@ -1,4 +1,4 @@
 export enum TypeStockMovementEnum {
-  ENTRY = 'Ingreso',
-  DISCHARGE = 'Egreso',
+  MERCHANDISE_ENTRY = 'Ingreso',
+  SALE = 'Venta',
 }

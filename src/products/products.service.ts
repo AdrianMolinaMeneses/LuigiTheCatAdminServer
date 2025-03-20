@@ -28,7 +28,7 @@ export class ProductsService {
 
       const product = newProduct.toJSON();
 
-      await this.stocksService.create({
+      await this.stocksService.createStock({
         product: product._id.toString(),
       });
 
@@ -130,12 +130,12 @@ export class ProductsService {
       const productToDelete = await this.findOne(id);
 
       if (productToDelete) {
-        const stockToDelete = await this.stocksService.findOneByProductId(
+        const stockToDelete = await this.stocksService.findOneStockByProductId(
           productToDelete._id!.toString(),
         );
 
         if (stockToDelete) {
-          await this.stocksService.remove(stockToDelete._id!.toString());
+          await this.stocksService.removeStock(stockToDelete._id!.toString());
         }
 
         return await this.productModel.deleteOne({ _id: id });
