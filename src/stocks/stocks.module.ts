@@ -10,12 +10,14 @@ import {
   StockMovementSchema,
 } from './entities/stock-movement.entity';
 import { AuthModule } from 'src/auth/auth.module';
+import { CashRegistersModule } from 'src/cash-registers/cash-registers.module';
 
 @Module({
   controllers: [StocksController, StockMovementsController],
   providers: [StocksService],
   imports: [
     AuthModule,
+    CashRegistersModule,
     forwardRef(() => ProductsModule),
     MongooseModule.forFeature([
       {

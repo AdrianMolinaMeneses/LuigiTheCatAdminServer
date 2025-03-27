@@ -4,6 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { StocksModule } from './stocks/stocks.module';
 import { AuthModule } from './auth/auth.module';
+import { CashRegistersModule } from './cash-registers/cash-registers.module';
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { AuthModule } from './auth/auth.module';
     ProductsModule,
     StocksModule,
     AuthModule,
+    CashRegistersModule,
+    ExpensesModule,
   ],
   controllers: [],
   providers: [],
