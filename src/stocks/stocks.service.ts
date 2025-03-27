@@ -9,11 +9,12 @@ import { CreateStockDto } from './dto/create-stock.dto';
 import { Stock } from './entities/stock.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ProductsService } from 'src/products/products.service';
+import { ProductsService } from '../products/products.service';
 import { StockMovement } from './entities/stock-movement.entity';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { TypeStockMovementEnum } from './interfaces/type-stock-movement-enum.interface';
 import { CancelStockMovementDto } from './dto/cancel-stock-movement.dto';
+import { CashRegistersService } from '../cash-registers/cash-registers.service';
 
 @Injectable()
 export class StocksService {
@@ -23,6 +24,7 @@ export class StocksService {
     private stockMovementModel: Model<StockMovement>,
     @Inject(forwardRef(() => ProductsService))
     private readonly productsService: ProductsService,
+    private readonly cashRegistersService: CashRegistersService,
   ) {}
 
   async createStock(createStockDto: CreateStockDto): Promise<Stock> {
@@ -58,7 +60,7 @@ export class StocksService {
     }
   }
 
-  async findOneStock(id: string): Promise<Stock> {
+  async findOneStockById(id: string): Promise<Stock> {
     try {
       const stock = await this.stockModel.findById(id).exec();
 
@@ -96,11 +98,11 @@ export class StocksService {
 
   async updateStock(id: string, updateStockDto: Stock) {
     try {
-      const stockToUpdate = await this.findOneStock(id);
+      const stockToUpdate = await this.findOneStockById(id);
 
       if (stockToUpdate) {
         await this.stockModel.replaceOne({ _id: id }, updateStockDto);
-        return await this.findOneStock(id);
+        return await this.findOneStockById(id);
       } else {
         throw new BadRequestException(`El stock con ID ${id} no existe!`);
       }
@@ -114,7 +116,7 @@ export class StocksService {
 
   async removeStock(id: string) {
     try {
-      const stockToDelete = await this.findOneStock(id);
+      const stockToDelete = await this.findOneStockById(id);
 
       if (stockToDelete) {
         return await this.stockModel.deleteOne({ _id: id });
@@ -134,13 +136,15 @@ export class StocksService {
     createStockMovementDto: CreateStockMovementDto,
   ): Promise<StockMovement> {
     try {
-      const stock = await this.findOneStock(createStockMovementDto.stock);
+      const TO_CREATE_STOCK_MOVEMENT = true;
+      const expense = null;
+      const stock = await this.findOneStockById(createStockMovementDto.stock);
 
       if (stock) {
         stock.quantity = this.updateStockQuantity(
           createStockMovementDto.type,
           createStockMovementDto.quantity,
-          true,
+          TO_CREATE_STOCK_MOVEMENT,
           stock,
         );
 
@@ -154,6 +158,12 @@ export class StocksService {
         await newStockMovement.save();
 
         const stockMovement = newStockMovement.toJSON();
+
+        await this.cashRegistersService.createOrDeleteCashRegisterEntry(
+          stockMovement,
+          expense,
+          TO_CREATE_STOCK_MOVEMENT,
+        );
 
         return stockMovement;
       } else {
@@ -174,8 +184,10 @@ export class StocksService {
     cancelStockMovementDto: CancelStockMovementDto,
   ): Promise<StockMovement> {
     try {
+      const TO_CREATE_STOCK_MOVEMENT = false;
+      const expense = null;
       const stockMovement = await this.findOneStockMovement(id);
-      const stock = await this.findOneStock(
+      const stock = await this.findOneStockById(
         stockMovement.stock._id!.toString(),
       );
 
@@ -183,7 +195,7 @@ export class StocksService {
         stock.quantity = this.updateStockQuantity(
           stockMovement.type,
           stockMovement.quantity,
-          false,
+          TO_CREATE_STOCK_MOVEMENT,
           stock,
         );
 
@@ -192,6 +204,12 @@ export class StocksService {
         stockMovement.status = false;
         stockMovement.description = 'Movimiento anulado';
         await this.stockMovementModel.replaceOne({ _id: id }, stockMovement);
+
+        await this.cashRegistersService.createOrDeleteCashRegisterEntry(
+          stockMovement,
+          expense,
+          TO_CREATE_STOCK_MOVEMENT,
+        );
 
         return stockMovement;
       } else {
