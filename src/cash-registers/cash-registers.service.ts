@@ -89,7 +89,9 @@ export class CashRegistersService {
 
           await newCashRegisterEntry.save();
 
-          cashRegister.totalAmount += newCashRegisterEntry.amount;
+          cashRegister.totalAmount += Number(
+            newCashRegisterEntry.amount.toFixed(2),
+          );
         } else {
           const cashRegisterEntryToDelete =
             await this.findOneCashRegisterEntryByStockMovementIdOrExpenseId(
@@ -124,7 +126,9 @@ export class CashRegistersService {
 
           await newCashRegisterEntry.save();
 
-          cashRegister.totalAmount += newCashRegisterEntry.amount;
+          cashRegister.totalAmount += Number(
+            newCashRegisterEntry.amount.toFixed(2),
+          );
         } else {
           const cashRegisterEntryToDelete =
             await this.findOneCashRegisterEntryByStockMovementIdOrExpenseId(
@@ -132,7 +136,9 @@ export class CashRegistersService {
               expense._id!.toString(),
             );
 
-          cashRegister.totalAmount -= cashRegisterEntryToDelete.amount;
+          cashRegister.totalAmount -= Number(
+            cashRegisterEntryToDelete.amount.toFixed(2),
+          );
 
           await this.removeCashRegisterEntry(
             cashRegisterEntryToDelete._id!.toString(),
