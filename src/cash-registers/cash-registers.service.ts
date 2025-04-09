@@ -65,6 +65,39 @@ export class CashRegistersService {
     }
   }
 
+  private async updatePettyCash(
+    amount: number,
+    movementType: string,
+    toCreate: boolean | null,
+  ) {
+    const cashRegister = await this.findOneCashRegisterByType(
+      TypeCashRegisterEnum.PETTY_CASH,
+    );
+
+    const amountToUpdate = Number(amount.toFixed(2));
+
+    if (movementType === TypeCashRegisterEnum.CREDIT) {
+      if (toCreate) {
+        cashRegister.totalAmount += amountToUpdate;
+      } else {
+        cashRegister.totalAmount -= amountToUpdate;
+      }
+    }
+
+    if (movementType === TypeCashRegisterEnum.DEBIT) {
+      if (toCreate) {
+        cashRegister.totalAmount -= amountToUpdate;
+      } else {
+        cashRegister.totalAmount += amountToUpdate;
+      }
+    }
+
+    await this.cashRegisterModel.replaceOne(
+      { _id: cashRegister._id },
+      cashRegister,
+    );
+  }
+
   async createOrDeleteCashRegisterEntry(
     stockMovement: StockMovement | null,
     expense: Expense | null,
@@ -92,6 +125,12 @@ export class CashRegistersService {
           cashRegister.totalAmount += Number(
             newCashRegisterEntry.amount.toFixed(2),
           );
+
+          await this.updatePettyCash(
+            newCashRegisterEntry.amount,
+            TYPE_CASH_REGISTER,
+            toCreate,
+          );
         } else {
           const cashRegisterEntryToDelete =
             await this.findOneCashRegisterEntryByStockMovementIdOrExpenseId(
@@ -103,6 +142,12 @@ export class CashRegistersService {
 
           await this.removeCashRegisterEntry(
             cashRegisterEntryToDelete._id!.toString(),
+          );
+
+          await this.updatePettyCash(
+            cashRegisterEntryToDelete.amount,
+            TYPE_CASH_REGISTER,
+            toCreate,
           );
         }
 
@@ -129,6 +174,12 @@ export class CashRegistersService {
           cashRegister.totalAmount += Number(
             newCashRegisterEntry.amount.toFixed(2),
           );
+
+          await this.updatePettyCash(
+            newCashRegisterEntry.amount,
+            TypeCashRegisterEnum.DEBIT,
+            toCreate,
+          );
         } else {
           const cashRegisterEntryToDelete =
             await this.findOneCashRegisterEntryByStockMovementIdOrExpenseId(
@@ -142,6 +193,12 @@ export class CashRegistersService {
 
           await this.removeCashRegisterEntry(
             cashRegisterEntryToDelete._id!.toString(),
+          );
+
+          await this.updatePettyCash(
+            cashRegisterEntryToDelete.amount,
+            TypeCashRegisterEnum.DEBIT,
+            toCreate,
           );
         }
 
